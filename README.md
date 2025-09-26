@@ -72,3 +72,5 @@ DATABASE_URL=sqlite:///expenses.db
 - `database/` - Database models and operations
 - `handlers/` - Command handlers
 - `utils/` - Utility functions for validation and formatting
+
+c34de460-b161-478e-96f9-c45294439ec5

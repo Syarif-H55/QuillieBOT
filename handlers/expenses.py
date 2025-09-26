@@ -4,6 +4,8 @@ from database.operations import add_expense, get_user_categories, add_user_categ
 from utils.validators import validate_amount, validate_category
 from utils.formatters import format_expense_message
 import logging
+from telegram.ext import ConversationHandler
+CATEGORY, AMOUNT = range(2)
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +14,7 @@ GUIDED_AMOUNT, GUIDED_CATEGORY, GUIDED_DESCRIPTION = range(3)
 
 
 async def receive_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    \"\"\"Handle receiving the expense amount in guided input\"\"\"
+    """Handle receiving the expense amount in guided input"""
     user = update.effective_user
     telegram_user_id = user.id
     
@@ -21,14 +23,14 @@ async def receive_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         amount, error = validate_amount(amount_str)
         
         if error:
-            await update.message.reply_text(f\"❌ {error}. Please enter a valid amount (e.g., 50000):\")
+            await update.message.reply_text(f"❌ {error}. Please enter a valid amount (e.g., 50000):")
             return
         
         # Validate that this is actually a number the user entered (not a command)
         try:
             float(amount_str)
         except ValueError:
-            await update.message.reply_text(\"❌ Please enter a valid amount (e.g., 50000):\")
+            await update.message.reply_text("❌ Please enter a valid amount (e.g., 50000):")
             return
         
         # Store amount in user context
@@ -40,12 +42,12 @@ async def receive_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         categories = get_user_categories(telegram_user_id)
         
         # Format categories for display
-        categories_text = \"\\n\".join([f\"  • {cat}\" for cat in categories])
+        categories_text = "\n".join([f"  • {cat}" for cat in categories])
         await update.message.reply_text(
-            f\"Jumlah pengeluaran: {amount:,}\\n\\n\"
-            f\"Pilih kategori berikut atau ketik kategori baru:\\n\"
-            f\"{categories_text}\\n\\n\"
-            f\"Ketik nama kategori:\"
+            f"Jumlah pengeluaran: {amount:,}\n\n"
+            f"Pilih kategori berikut atau ketik kategori baru:\n"
+            f"{categories_text}\n\n"
+            f"Ketik nama kategori:"
         )
         
         # We'll handle the category input using a different approach since we're not using ConversationHandler
@@ -54,12 +56,12 @@ async def receive_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['awaiting_category'] = True
         
     except Exception as e:
-        logger.error(f\"Error receiving amount: {str(e)}\")
-        await update.message.reply_text(f\"❌ Error: {str(e)}\")
+        logger.error(f"Error receiving amount: {str(e)}")
+        await update.message.reply_text(f"❌ Error: {str(e)}")
 
 
 async def add_expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    \"\"\"Handle the /tambah command - can be used with arguments or start guided input\"\"\"
+    """Handle the /tambah command - can be used with arguments or start guided input"""
     user = update.effective_user
     telegram_user_id = user.id
     
@@ -71,12 +73,12 @@ async def add_expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Validate category
         is_valid, error = validate_category(category)
         if not is_valid:
-            await update.message.reply_text(f\"❌ {error}\")
+            await update.message.reply_text(f"❌ {error}")
             return
         
         # Store category in user context
         context.user_data['guided_expense']['category'] = category
-        await update.message.reply_text(\"Masukkan deskripsi (opsional):\")
+        await update.message.reply_text("Masukkan deskripsi (opsional):")
         
         # Set state to awaiting description
         context.user_data['awaiting_category'] = False
@@ -106,12 +108,12 @@ async def add_expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE
             expense = add_expense(telegram_user_id, amount, category, description)
             
             # Send success message
-            success_message = f\"✅ Pengeluaran tercatat!\\n{format_expense_message(expense)}\"
+            success_message = f"✅ Pengeluaran tercatat!\n{format_expense_message(expense)}"
             await update.message.reply_text(success_message)
             
         except Exception as e:
-            logger.error(f\"Error saving guided expense: {str(e)}\")
-            await update.message.reply_text(f\"❌ Error occurred while saving expense: {str(e)}\")
+            logger.error(f"Error saving guided expense: {str(e)}")
+            await update.message.reply_text(f"❌ Error occurred while saving expense: {str(e)}")
         finally:
             # Clear user data
             context.user_data.clear()
@@ -122,8 +124,8 @@ async def add_expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     if context.args:
         if len(context.args) < 2:
             await update.message.reply_text(
-                \"❌ Usage: /tambah [amount] [category] [description?]\\n\"
-                \"Example: /tambah 50000 makan 'makan siang'\"
+                "❌ Usage: /tambah [amount] [category] [description?]\n"
+                "Example: /tambah 50000 makan 'makan siang'"
             )
             return
         
@@ -131,30 +133,70 @@ async def add_expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         try:
             amount_str = context.args[0]
             category = context.args[1]
-            description = \" \".join(context.args[2:]) if len(context.args) > 2 else None
+            description = " ".join(context.args[2:]) if len(context.args) > 2 else None
             
             # Validate amount
             amount, error = validate_amount(amount_str)
             if error:
-                await update.message.reply_text(f\"❌ {error}\")
+                await update.message.reply_text(f"❌ {error}")
                 return
             
             # Validate category
             is_valid, error = validate_category(category)
             if not is_valid:
-                await update.message.reply_text(f\"❌ {error}\")
+                await update.message.reply_text(f"❌ {error}")
                 return
             
             # Add expense to database
             expense = add_expense(telegram_user_id, amount, category, description)
             
             # Send confirmation message
-            success_message = f\"✅ Pengeluaran tercatat!\\n{format_expense_message(expense)}\"
+            success_message = f"✅ Pengeluaran tercatat!\n{format_expense_message(expense)}"
             await update.message.reply_text(success_message)
             
         except Exception as e:
-            logger.error(f\"Error adding expense: {str(e)}\")
-            await update.message.reply_text(f\"❌ Error occurred while adding expense: {str(e)}\")
+            logger.error(f"Error adding expense: {str(e)}")
+            await update.message.reply_text(f"❌ Error occurred while adding expense: {str(e)}")
+    else:
+        # Start guided input - we handle this in main.py by sending the prompt
+        # The actual handling of the amount input will be in receive_amount
+        pass
+
+
+async def receive_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle receiving the expense amount"""
+    user = update.effective_user
+    telegram_user_id = user.id
+    
+    try:
+        amount_str = update.message.text
+        amount, error = validate_amount(amount_str)
+        
+        if error:
+            await update.message.reply_text(f"❌ {error}. Please enter a valid amount (e.g., 50000):")
+            return AMOUNT
+        
+        # Store amount in user context
+        context.user_data['expense_amount'] = amount
+        
+        # Get user's available categories
+        categories = get_user_categories(telegram_user_id)
+        
+        # Create inline keyboard for categories
+        keyboard = []
+        for cat in categories:
+            keyboard.append([InlineKeyboardButton(cat, callback_data=f"cat_{cat}")])
+        
+        # Add option to add new category
+        keyboard.append([InlineKeyboardButton("➕ Add New Category", callback_data="new_category")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text("Pilih kategori:", reply_markup=reply_markup)
+        
+        return CATEGORY
+    except Exception as e:
+        logger.error(f"Error receiving amount: {str(e)}")
+        await update.message.reply_text(f"❌ Error occurred while adding expense: {str(e)}")
     else:
         # Start guided input - we handle this in main.py by sending the prompt
         # The actual handling of the amount input will be in receive_amount
@@ -254,7 +296,7 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     keyboard = [
         [InlineKeyboardButton("✅ Simpan", callback_data="confirm_yes"),
-         InlineKeyboardButton("❌ Batal", callback_data="confirm_no")]
+            InlineKeyboardButton("❌ Batal", callback_data="confirm_no")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
