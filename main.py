@@ -115,8 +115,8 @@ def main():
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 8080)),  # ambil port dari Railway
-        url_path="7628457855:AAH1VSKv9iHJ0xHozGRm6dhSucV91rfGLV8",
-        webhook_url=f"https://{os.environ.get('RAILWAY_STATIC_URL')}/{"7628457855:AAH1VSKv9iHJ0xHozGRm6dhSucV91rfGLV8"}",
+        url_path="BOT_TOKEN",
+        webhook_url=f"https://{os.environ.get('RAILWAY_STATIC_URL')}/{"BOT_TOKEN"}",
         drop_pending_updates=True
     )
 
