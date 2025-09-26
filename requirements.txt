@@ -1,5 +1,5 @@
-python-telegram-bot==20.7
-sqlalchemy==2.0.23
+python-telegram-bot==20.3
+SQLAlchemy==2.0.25
 apscheduler==3.10.4
 python-dotenv==1.0.0
 matplotlib==3.8.2
